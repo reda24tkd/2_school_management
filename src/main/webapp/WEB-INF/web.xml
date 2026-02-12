@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="https://jakarta.ee/xml/ns/jakartaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_6_0.xsd"
+         version="6.0">
+
+    <!-- Database connection parameters (shared across all servlets) -->
+    <context-param>
+        <param-name>db-url</param-name>
+        <param-value>jdbc:mysql://localhost:3306/school_management</param-value>
+    </context-param>
+    <context-param>
+        <param-name>db-user</param-name>
+        <param-value>root</param-value>
+    </context-param>
+    <context-param>
+        <param-name>db-password</param-name>
+        <param-value></param-value>
+    </context-param>
+
+    <!-- Servlet Declaration -->
+    <servlet>
+        <servlet-name>StudentServlet</servlet-name>
+        <servlet-class>ensa.gi.__school_management.servlet.StudentServlet</servlet-class>
+    </servlet>
+
+    <!-- Map servlet to URL pattern -->
+    <servlet-mapping>
+        <servlet-name>StudentServlet</servlet-name>
+        <url-pattern>/students</url-pattern>
+    </servlet-mapping>
+
+    <!-- Default page when visiting root URL -->
+    <welcome-file-list>
+        <welcome-file>students</welcome-file>
+    </welcome-file-list>
+</web-app>
