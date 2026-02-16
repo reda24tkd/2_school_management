@@ -1,24 +1,27 @@
 package ensa.gi.__school_management.servlet;
 
-import ensa.gi.__school_management.dao.StudentDAO;
-import ensa.gi.__school_management.model.Student;
-import ensa.gi.__school_management.util.DatabaseConnection;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.*;
 
 import java.io.IOException;
 import java.sql.*;
-import java.util.List;
 
-public class StudentServlet extends HttpServlet {
+/**
+ * V2 - Reuses single connection, uses JSP for view, context params for config
+ */
+public class StudentServlet_V2_JSP extends HttpServlet {
 
-    private StudentDAO studentDAO;
+    private Connection conn;
 
     @Override
     public void init() throws ServletException {
         try {
-            Connection conn = DatabaseConnection.getConnection(getServletContext());
-            studentDAO = new StudentDAO(conn);
+            String dbUrl = getServletContext().getInitParameter("db-url");
+            String dbUser = getServletContext().getInitParameter("db-user");
+            String dbPassword = getServletContext().getInitParameter("db-password");
+            
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            conn = DriverManager.getConnection(dbUrl, dbUser, dbPassword);
         } catch (Exception e) {
             throw new ServletException("Database connection failed", e);
         }
@@ -29,9 +32,12 @@ public class StudentServlet extends HttpServlet {
             throws IOException, ServletException {
         
         try {
-            List<Student> students = studentDAO.getAllStudents();
-            req.setAttribute("students", students);
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT * FROM students");
+            
+            req.setAttribute("students", rs);
             req.getRequestDispatcher("index.jsp").forward(req, resp);
+            
         } catch (Exception e) {
             resp.getWriter().println("<h1>Error: " + e.getMessage() + "</h1>");
         }
@@ -47,9 +53,18 @@ public class StudentServlet extends HttpServlet {
         String grade = req.getParameter("grade");
         
         try {
-            Student student = new Student(0, name, email, age, grade);
-            studentDAO.addStudent(student);
+            PreparedStatement stmt = conn.prepareStatement(
+                "INSERT INTO students (name, email, age, grade) VALUES (?, ?, ?, ?)");
+            stmt.setString(1, name);
+            stmt.setString(2, email);
+            stmt.setInt(3, age);
+            stmt.setString(4, grade);
+            stmt.executeUpdate();
+            
+            stmt.close();
+            
             resp.sendRedirect("students");
+            
         } catch (Exception e) {
             resp.getWriter().println("<h1>Error: " + e.getMessage() + "</h1>");
         }
@@ -57,6 +72,12 @@ public class StudentServlet extends HttpServlet {
 
     @Override
     public void destroy() {
-        DatabaseConnection.closeConnection();
+        try {
+            if (conn != null && !conn.isClosed()) {
+                conn.close();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 }
