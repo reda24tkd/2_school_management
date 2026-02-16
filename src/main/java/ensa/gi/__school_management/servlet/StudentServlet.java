@@ -1,17 +1,29 @@
 package ensa.gi.__school_management.servlet;
 
+import ensa.gi.__school_management.dao.StudentDAO;
+import ensa.gi.__school_management.model.Student;
+import ensa.gi.__school_management.util.DatabaseConnection;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.*;
 
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.*;
+import java.util.List;
 
-
-/**
- * V1 - Creates new connection per request, uses PrintWriter for HTML output
- */
 public class StudentServlet extends HttpServlet {
+
+    private StudentDAO studentDAO;
+
+    @Override
+    public void init() throws ServletException {
+        try {
+            Connection conn = DatabaseConnection.getConnection(getServletContext());
+            studentDAO = new StudentDAO(conn);
+        } catch (Exception e) {
+            throw new ServletException("Database connection failed", e);
+        }
+    }
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
@@ -24,45 +36,32 @@ public class StudentServlet extends HttpServlet {
         PrintWriter out = resp.getWriter();
         
         try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-            Connection conn = DriverManager.getConnection(
-                "jdbc:mysql://localhost:3306/school_management", "root", "");
-            
             if ("delete".equals(action) && id != null) {
-                PreparedStatement stmt = conn.prepareStatement("DELETE FROM students WHERE id = ?");
-                stmt.setInt(1, Integer.parseInt(id));
-                stmt.executeUpdate();
-                stmt.close();
-                conn.close();
+                studentDAO.deleteStudent(Integer.parseInt(id));
                 resp.sendRedirect("students");
                 return;
             }
             
-            Statement stmt = conn.createStatement();
-            ResultSet rs = stmt.executeQuery("SELECT * FROM students");
+            List<Student> students = studentDAO.getAllStudents();
             
             out.println("<html><head><link rel='stylesheet' href='css/style.css'></head><body>");
             out.println("<div class='container'><h1>Student List</h1>");
             out.println("<table><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Age</th><th>Grade</th><th>Action</th></tr></thead><tbody>");
             
-            while (rs.next()) {
+            for (Student student : students) {
                 out.println("<tr>");
-                out.println("<td>" + rs.getInt("id") + "</td>");
-                out.println("<td>" + rs.getString("name") + "</td>");
-                out.println("<td>" + rs.getString("email") + "</td>");
-                out.println("<td>" + rs.getInt("age") + "</td>");
-                out.println("<td>" + rs.getString("grade") + "</td>");
-                out.println("<td><a href='students?action=delete&id=" + rs.getInt("id") + "' onclick='return confirm(\"Delete this student?\")'>Delete</a></td>");
+                out.println("<td>" + student.getId() + "</td>");
+                out.println("<td>" + student.getName() + "</td>");
+                out.println("<td>" + student.getEmail() + "</td>");
+                out.println("<td>" + student.getAge() + "</td>");
+                out.println("<td>" + student.getGrade() + "</td>");
+                out.println("<td><a href='students?action=delete&id=" + student.getId() + "' onclick='return confirm(\"Delete this student?\")'>Delete</a></td>");
                 out.println("</tr>");
             }
             
             out.println("</tbody></table>");
             out.println("<a href='students/create.html' class='btn-link'>+ Add New Student</a>");
             out.println("</div></body></html>");
-            
-            rs.close();
-            stmt.close();
-            conn.close();
             
         } catch (Exception e) {
             out.println("<h1>Error: " + e.getMessage() + "</h1>");
@@ -79,26 +78,17 @@ public class StudentServlet extends HttpServlet {
         String grade = req.getParameter("grade");
         
         try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-            Connection conn = DriverManager.getConnection(
-                "jdbc:mysql://localhost:3306/school_management", "root", "");
-            
-            PreparedStatement stmt = conn.prepareStatement(
-                "INSERT INTO students (name, email, age, grade) VALUES (?, ?, ?, ?)");
-            stmt.setString(1, name);
-            stmt.setString(2, email);
-            stmt.setInt(3, age);
-            stmt.setString(4, grade);
-            stmt.executeUpdate();
-            
-            stmt.close();
-            conn.close();
-            
+            Student student = new Student(0, name, email, age, grade);
+            studentDAO.addStudent(student);
             resp.sendRedirect("students");
-            
         } catch (Exception e) {
             resp.getWriter().println("<h1>Error: " + e.getMessage() + "</h1>");
         }
+    }
+
+    @Override
+    public void destroy() {
+        DatabaseConnection.closeConnection();
     }
 
 }
