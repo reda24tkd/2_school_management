@@ -47,6 +47,14 @@ public class StudentServlet extends HttpServlet {
                 return;
             }
             
+            if ("edit".equals(action) && id != null) {
+                Student student = studentDAO.getStudentById(Integer.parseInt(id));
+                if (student != null) {
+                    showEditForm(out, student);
+                    return;
+                }
+            }
+            
             List<Student> students = studentDAO.getAllStudents();
             syncSessionWithDB(session, students);
             
@@ -63,7 +71,7 @@ public class StudentServlet extends HttpServlet {
                 out.println("<td>" + student.getEmail() + "</td>");
                 out.println("<td>" + student.getAge() + "</td>");
                 out.println("<td>" + student.getGrade() + "</td>");
-                out.println("<td><a href='students?action=delete&id=" + student.getId() + "' onclick='return confirm(\"Delete this student?\")'>Delete</a></td>");
+                out.println("<td><a href='students?action=edit&id=" + student.getId() + "'>Edit</a> | <a href='students?action=delete&id=" + student.getId() + "' onclick='return confirm(\"Delete this student?\")'>Delete</a></td>");
                 out.println("</tr>");
             }
             
@@ -100,18 +108,25 @@ public class StudentServlet extends HttpServlet {
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws IOException, ServletException {
         
+        String action = req.getParameter("action");
         String name = req.getParameter("name");
         String email = req.getParameter("email");
         int age = Integer.parseInt(req.getParameter("age"));
         String grade = req.getParameter("grade");
         
         try {
-            Student student = new Student(0, name, email, age, grade);
-            studentDAO.addStudent(student);
-            
-            HttpSession session = req.getSession();
-            addStudentToSession(session, student);
-            logSessionInfo(session);
+            if ("update".equals(action)) {
+                int id = Integer.parseInt(req.getParameter("id"));
+                Student student = new Student(id, name, email, age, grade);
+                studentDAO.updateStudent(student);
+            } else {
+                Student student = new Student(0, name, email, age, grade);
+                studentDAO.addStudent(student);
+                
+                HttpSession session = req.getSession();
+                addStudentToSession(session, student);
+                logSessionInfo(session);
+            }
             
             resp.sendRedirect("students");
         } catch (Exception e) {
@@ -180,6 +195,47 @@ public class StudentServlet extends HttpServlet {
             log("Visit Count: " + visitCount);
         }
         log("==================================");
+    }
+    
+    private void showEditForm(PrintWriter out, Student student) {
+        out.println("<html><head><link rel='stylesheet' href='css/style.css'></head><body>");
+        out.println("<div class='container'>");
+        out.println("<h1>Edit Student</h1>");
+        out.println("<form action='students' method='post'>");
+        out.println("<input type='hidden' name='action' value='update'>");
+        out.println("<input type='hidden' name='id' value='" + student.getId() + "'>");
+        
+        out.println("<div class='form-row'>");
+        out.println("<div class='form-group'>");
+        out.println("<label for='name'>Name:</label>");
+        out.println("<input type='text' id='name' name='name' value='" + student.getName() + "' required>");
+        out.println("</div>");
+        out.println("<div class='form-group'>");
+        out.println("<label for='email'>Email:</label>");
+        out.println("<input type='email' id='email' name='email' value='" + student.getEmail() + "' required>");
+        out.println("</div>");
+        out.println("</div>");
+        
+        out.println("<div class='form-row'>");
+        out.println("<div class='form-group'>");
+        out.println("<label for='age'>Age:</label>");
+        out.println("<input type='number' id='age' name='age' value='" + student.getAge() + "' min='15' max='100' required>");
+        out.println("</div>");
+        out.println("<div class='form-group'>");
+        out.println("<label for='grade'>Grade:</label>");
+        out.println("<select id='grade' name='grade' required>");
+        out.println("<option value='A' " + ("A".equals(student.getGrade()) ? "selected" : "") + ">A</option>");
+        out.println("<option value='B' " + ("B".equals(student.getGrade()) ? "selected" : "") + ">B</option>");
+        out.println("<option value='C' " + ("C".equals(student.getGrade()) ? "selected" : "") + ">C</option>");
+        out.println("<option value='D' " + ("D".equals(student.getGrade()) ? "selected" : "") + ">D</option>");
+        out.println("</select>");
+        out.println("</div>");
+        out.println("</div>");
+        
+        out.println("<button type='submit'>Update Student</button>");
+        out.println("</form>");
+        out.println("<a href='students' class='btn-link'>← Back to List</a>");
+        out.println("</div></body></html>");
     }
 
     @Override
