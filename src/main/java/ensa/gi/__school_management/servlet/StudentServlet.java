@@ -25,6 +25,12 @@ public class StudentServlet extends HttpServlet {
     }
 
     @Override
+    public void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        doGet(req,resp);
+        doPost(req,resp);
+    }
+
+    @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws IOException, ServletException {
         
