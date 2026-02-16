@@ -40,4 +40,16 @@
         <error-code>404</error-code>
         <location>/error pages/error-404.html</location>
     </error-page>
+
+    <!-- Filter Declaration -->
+    <filter>
+        <filter-name>LoggingFilter</filter-name>
+        <filter-class>ensa.gi.__school_management.filter.LoggingFilter</filter-class>
+    </filter>
+
+    <!-- Map filter to URL pattern -->
+    <filter-mapping>
+        <filter-name>LoggingFilter</filter-name>
+        <servlet-name>StudentServlet</servlet-name>
+    </filter-mapping>
 </web-app>
