@@ -91,6 +91,15 @@ button:hover {
     background: #45a049;
 }
 
+a {
+    color: #4CAF50;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
 .btn-link {
     display: inline-block;
     margin-top: 20px;

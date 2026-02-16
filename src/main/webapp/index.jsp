@@ -20,6 +20,7 @@
                     <th>Email</th>
                     <th>Age</th>
                     <th>Grade</th>
+                    <th>Action</th>
                 </tr>
             </thead>
             <tbody>
@@ -33,6 +34,7 @@
                     <td><%= student.getEmail() %></td>
                     <td><%= student.getAge() %></td>
                     <td><%= student.getGrade() %></td>
+                    <td><a href="students?action=delete&id=<%= student.getId() %>" onclick="return confirm('Delete this student?')">Delete</a></td>
                 </tr>
                 <%
                     }

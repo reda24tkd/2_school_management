@@ -42,4 +42,11 @@ public class  StudentDAO {
         stmt.executeUpdate();
         stmt.close();
     }
+    
+    public void deleteStudent(int id) throws SQLException {
+        PreparedStatement stmt = conn.prepareStatement("DELETE FROM students WHERE id = ?");
+        stmt.setInt(1, id);
+        stmt.executeUpdate();
+        stmt.close();
+    }
 }
