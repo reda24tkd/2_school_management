@@ -28,7 +28,10 @@ public class StudentServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws IOException, ServletException {
-        
+
+        HttpSession session = req.getSession(true);
+        String welcomeMessage = showSessionMsg(session);
+
         String action = req.getParameter("action");
         String id = req.getParameter("id");
         
@@ -37,15 +40,20 @@ public class StudentServlet extends HttpServlet {
         
         try {
             if ("delete".equals(action) && id != null) {
-                studentDAO.deleteStudent(Integer.parseInt(id));
+                int studentId = Integer.parseInt(id);
+                studentDAO.deleteStudent(studentId);
+                removeStudentFromSession(session, studentId);
                 resp.sendRedirect("students");
                 return;
             }
             
             List<Student> students = studentDAO.getAllStudents();
+            syncSessionWithDB(session, students);
             
             out.println("<html><head><link rel='stylesheet' href='css/style.css'></head><body>");
-            out.println("<div class='container'><h1>Student List</h1>");
+            out.println("<div class='container'>");
+            out.println("<p style='text-align:center; color:#4CAF50; font-weight:bold;'>" + welcomeMessage + "</p>");
+            out.println("<h1>Student List</h1>");
             out.println("<table><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Age</th><th>Grade</th><th>Action</th></tr></thead><tbody>");
             
             for (Student student : students) {
@@ -61,13 +69,33 @@ public class StudentServlet extends HttpServlet {
             
             out.println("</tbody></table>");
             out.println("<a href='students/create.html' class='btn-link'>+ Add New Student</a>");
+            
+            out.println("<div style='margin-top:30px; padding:15px; background:#f9f9f9; border-radius:5px;'>");
+            out.println("<h3>Session Info</h3>");
+            out.println("<p><strong>Session ID:</strong> " + session.getId() + "</p>");
+            out.println("<p><strong>Visit Count:</strong> " + session.getAttribute("visitCount") + "</p>");
+            // The SESSIONS
+//            @SuppressWarnings("unchecked")
+            List<Student> sessionStudents = (List<Student>) session.getAttribute("allStudents");
+            if (sessionStudents != null && !sessionStudents.isEmpty()) {
+                out.println("<p><strong>Students in Session:</strong> " + sessionStudents.size() + "</p>");
+                out.println("<ul>");
+                for (Student s : sessionStudents) {
+                    out.println("<li>" + s.getName() + " (" + s.getEmail() + ")</li>");
+                }
+                out.println("</ul>");
+            } else {
+                out.println("<p><strong>Students in Session:</strong> None</p>");
+            }
+            out.println("</div>");
+            
             out.println("</div></body></html>");
             
         } catch (Exception e) {
             out.println("<h1>Error: " + e.getMessage() + "</h1>");
         }
     }
-    
+
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws IOException, ServletException {
@@ -80,10 +108,78 @@ public class StudentServlet extends HttpServlet {
         try {
             Student student = new Student(0, name, email, age, grade);
             studentDAO.addStudent(student);
+            
+            HttpSession session = req.getSession();
+            addStudentToSession(session, student);
+            logSessionInfo(session);
+            
             resp.sendRedirect("students");
         } catch (Exception e) {
             resp.getWriter().println("<h1>Error: " + e.getMessage() + "</h1>");
         }
+    }
+
+    private void syncSessionWithDB(HttpSession session, List<Student> students) {
+        session.setAttribute("allStudents", students);
+    }
+    
+    private void addStudentToSession(HttpSession session, Student student) {
+//        @SuppressWarnings("unchecked")
+        List<Student> sessionStudents = (List<Student>) session.getAttribute("allStudents");
+        if (sessionStudents != null) {
+            sessionStudents.add(student);
+        }
+    }
+    
+    private void removeStudentFromSession(HttpSession session, int studentId) {
+//        @SuppressWarnings("unchecked")
+        List<Student> sessionStudents = (List<Student>) session.getAttribute("allStudents");
+        if (sessionStudents != null) {
+            sessionStudents.removeIf(s -> s.getId() == studentId);
+        }
+    }
+
+    private static String showSessionMsg(HttpSession session) {
+
+        String welcomeMessage = "";
+        Integer visitCount = (Integer) session.getAttribute("visitCount");
+
+        if (visitCount == null) {
+            visitCount = 1;
+        } else {
+            visitCount++;
+        }
+        session.setAttribute("visitCount", visitCount);
+
+        if (visitCount == 1) {
+            welcomeMessage = "Welcome! This is your first visit.";
+        } else {
+            welcomeMessage = "Welcome back! You've visited this page " + visitCount + " times.";
+        }
+        return welcomeMessage;
+    }
+
+    private void logSessionInfo(HttpSession session) {
+        log("========== SESSION INFO ==========");
+        log("Session ID: " + session.getId());
+        log("Creation Time: " + new java.util.Date(session.getCreationTime()));
+        log("Last Accessed: " + new java.util.Date(session.getLastAccessedTime()));
+        log("Max Inactive Interval: " + session.getMaxInactiveInterval() + " seconds");
+        
+        @SuppressWarnings("unchecked")
+        List<Student> allStudents = (List<Student>) session.getAttribute("allStudents");
+        if (allStudents != null) {
+            log("Total Students in Session: " + allStudents.size());
+            for (Student s : allStudents) {
+                log("  - " + s.getName() + " (" + s.getEmail() + ")");
+            }
+        }
+        
+        Integer visitCount = (Integer) session.getAttribute("visitCount");
+        if (visitCount != null) {
+            log("Visit Count: " + visitCount);
+        }
+        log("==================================");
     }
 
     @Override
